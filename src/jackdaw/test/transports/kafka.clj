@@ -1,8 +1,9 @@
 (ns jackdaw.test.transports.kafka
   (:require
+   [clojure.tools.logging :as log]
+   [clojure.stacktrace :as stacktrace]
    [manifold.stream :as s]
    [manifold.deferred :as d]
-   [clojure.tools.logging :as log]
    [jackdaw.client :as kafka]
    [jackdaw.data :as jd]
    [jackdaw.test.commands :as cmd]
@@ -165,9 +166,10 @@
                                              (-> (apply-serializers serializers x)
                                                  (build-record))
                                              (catch Exception e
-                                               (log/error e "kafka producer serialization error")
-                                               (assoc x
-                                                      :serialization-error e))))))]
+                                               (let [trace (with-out-str
+                                                             (stacktrace/print-cause-trace e))]
+                                                 (log/error e trace))
+                                               (assoc x :serialization-error e))))))]
 
      (log/infof "started kafka producer: %s"
                 (select-keys kafka-config ["bootstrap.servers" "group.id"]))
